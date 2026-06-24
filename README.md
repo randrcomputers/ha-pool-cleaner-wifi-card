@@ -20,7 +20,7 @@ The original **BLE card is unchanged** — this is a separate HACS resource so W
 
 1. Add card type **`custom:pool-cleaner-wifi-card`**
 2. Pick your **MyDolphin device** (auto-fills vacuum + sensors), or set **Vacuum entity** manually
-3. Optional: copy artwork from [ha-pool-cleaner-card/pool_card](https://github.com/randrcomputers/ha-pool-cleaner-card/tree/main/pool_card) to `config/www/pool_card/`
+3. Optional: Copy pool_card/ → config/www/pool_card/
 
 ```yaml
 type: custom:pool-cleaner-wifi-card
