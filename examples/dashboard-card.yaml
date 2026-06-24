@@ -1,0 +1,8 @@
+# MyDolphin Plus (WiFi) — same look as the BLE Pool Cleaner Card.
+# Pick your device in the UI editor, or set device: YOUR_DEVICE_ID.
+
+type: custom:pool-cleaner-wifi-card
+device: YOUR_DEVICE_ID
+image_robot: /local/pool_card/robot_triton_front.png
+image_psu: /local/pool_card/psu_front.png
+show_schedule: false

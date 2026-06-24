@@ -1,0 +1,135 @@
+# Save as: config/packages/pool-cleaner-wifi-schedule.yaml
+# configuration.yaml must have:  packages: !include_dir_named packages
+#
+# Schedule panel for Pool Cleaner WiFi Card (MyDolphin Plus / dolphin-robot).
+# Edit `vacuum:` below to your robot vacuum entity_id.
+
+input_boolean:
+  pool_cleaner_schedule_enabled:
+    name: Pool cleaner schedule enabled
+    icon: mdi:calendar-clock
+  pool_cleaner_schedule_2_enabled:
+    name: Pool cleaner schedule run 2 enabled
+    icon: mdi:calendar-clock
+
+input_datetime:
+  pool_cleaner_schedule_time:
+    name: Pool cleaner start time (run 1)
+    has_date: false
+    has_time: true
+  pool_cleaner_schedule_time_2:
+    name: Pool cleaner start time (run 2)
+    has_date: false
+    has_time: true
+    initial: "17:00:00"
+
+input_select:
+  pool_cleaner_schedule_duration:
+    name: Pool cleaner run 1 duration
+    options:
+      - "1 hour"
+      - "2 hours"
+  pool_cleaner_schedule_duration_2:
+    name: Pool cleaner run 2 duration
+    options:
+      - "1 hour"
+      - "2 hours"
+
+input_text:
+  pool_cleaner_schedule_days:
+    name: Pool cleaner schedule days
+    max: 32
+    initial: "0,1,2,3,4,5,6"
+
+script:
+  pool_cleaner_wifi_timed_run:
+    alias: Pool cleaner WiFi timed run
+    mode: restart
+    fields:
+      vacuum_entity:
+        description: MyDolphin Plus vacuum entity_id
+        example: vacuum.my_robot
+      duration_minutes:
+        description: Run time in minutes
+        example: 120
+    sequence:
+      - action: vacuum.start
+        target:
+          entity_id: "{{ vacuum_entity }}"
+      - delay:
+          minutes: "{{ duration_minutes | int }}"
+      - action: vacuum.stop
+        target:
+          entity_id: "{{ vacuum_entity }}"
+
+automation:
+  - id: pool_cleaner_wifi_scheduled_run
+    alias: Pool cleaner WiFi scheduled start (run 1)
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_cleaner_schedule_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {% set t = state_attr('input_datetime.pool_cleaner_schedule_time', 'time')
+             or states('input_datetime.pool_cleaner_schedule_time') %}
+          {% if t in ['unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set parts = (t.split(' ')[-1] if ' ' in t else t).split(':') %}
+            {{ now().hour == parts[0] | int and now().minute == parts[1] | int }}
+          {% endif %}
+      - condition: template
+        value_template: >
+          {% set days = states('input_text.pool_cleaner_schedule_days').split(',') | map('trim') | list %}
+          {{ now().weekday() | string in days }}
+    action:
+      - variables:
+          vacuum: vacuum.my_robot  # ← change to your vacuum entity
+          mins: >
+            {% if is_state('input_select.pool_cleaner_schedule_duration', '1 hour') %}60{% else %}120{% endif %}
+      - action: script.pool_cleaner_wifi_timed_run
+        data:
+          vacuum_entity: "{{ vacuum }}"
+          duration_minutes: "{{ mins }}"
+    mode: restart
+
+  - id: pool_cleaner_wifi_scheduled_run_2
+    alias: Pool cleaner WiFi scheduled start (run 2)
+    trigger:
+      - platform: time_pattern
+        minutes: "/1"
+    condition:
+      - condition: state
+        entity_id: input_boolean.pool_cleaner_schedule_enabled
+        state: "on"
+      - condition: state
+        entity_id: input_boolean.pool_cleaner_schedule_2_enabled
+        state: "on"
+      - condition: template
+        value_template: >
+          {% set t = state_attr('input_datetime.pool_cleaner_schedule_time_2', 'time')
+             or states('input_datetime.pool_cleaner_schedule_time_2') %}
+          {% if t in ['unknown', 'unavailable', ''] %}
+            false
+          {% else %}
+            {% set parts = (t.split(' ')[-1] if ' ' in t else t).split(':') %}
+            {{ now().hour == parts[0] | int and now().minute == parts[1] | int }}
+          {% endif %}
+      - condition: template
+        value_template: >
+          {% set days = states('input_text.pool_cleaner_schedule_days').split(',') | map('trim') | list %}
+          {{ now().weekday() | string in days }}
+    action:
+      - variables:
+          vacuum: vacuum.my_robot  # ← change to your vacuum entity
+          mins: >
+            {% if is_state('input_select.pool_cleaner_schedule_duration_2', '1 hour') %}60{% else %}120{% endif %}
+      - action: script.pool_cleaner_wifi_timed_run
+        data:
+          vacuum_entity: "{{ vacuum }}"
+          duration_minutes: "{{ mins }}"
+    mode: restart
